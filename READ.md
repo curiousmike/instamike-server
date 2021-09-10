@@ -1,3 +1,3 @@
 # instamike-server
 
-This should be a mongodb
+This should be a mongodb.
