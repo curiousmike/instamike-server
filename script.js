@@ -30,8 +30,8 @@ app.post('/api/modify', async (req, res) => {
 });
 
 // C_R_UD
-app.post('/api/get', async (req, res) => {
-    console.log('get called');
+app.get('/api/get', async (req, res) => {
+    console.log('\n\nget called');
     const records = await UserModel.find({});   // this says: Give me everything
     // const records = await UserModel.find({userName: 'mike'}); // every record with name == 'mike'
     //.findOne({userName: 'mike'})
@@ -47,11 +47,11 @@ app.post('/api/create', async (req, res) => {
     const response = await UserModel.create(record);
 	console.log(response)
 
-	// res.json({ status: 'ok' })
+	res.json({ status: 'ok' })
 })
 
-const port = 13371;
-const ipAddress = 'localhost';
+const port = 4000;
+const ipAddress = '127.0.0.1';
 app.listen(port, ipAddress, () => {
 	console.log(`Server up ${ipAddress}:${port}`);
 })
