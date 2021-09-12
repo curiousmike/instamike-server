@@ -16,7 +16,7 @@ mongoose.connect(`mongodb+srv://mcoustier:${mongoAtlasPassword}@cluster0.1mm3m.m
 
 app.use('/', express.static(path.resolve(__dirname, 'assets')))
 app.use(bodyParser.json());
-// CR_U_D
+// CR_U_D - UPDATE
 app.post('/api/modify', async (req, res) => {
     const { oldName: oldName, newName: newName } = req.body;
     const response = await UserModel.updateOne({
@@ -30,10 +30,13 @@ app.post('/api/modify', async (req, res) => {
     res.json({status: 'ok modify'});
 });
 
-// C_R_UD
+// C_R_UD - READ
 app.get('/api/get', async (req, res) => {
-    console.log('\n\nget called');
-    const records = await UserModel.find({});   // this says: Give me everything
+    const query = req.query.query;
+    console.log('READ query = ', query);
+    const records = await UserModel.find({name: query});   // this 
+    console.log('records = ', records);
+    // says: Give me everything
     // const records = await UserModel.find({userName: 'mike'}); // every record with name == 'mike'
     //.findOne({userName: 'mike'})
     res.json(records);
