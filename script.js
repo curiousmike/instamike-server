@@ -31,23 +31,20 @@ app.post('/api/modify', async (req, res) => {
 });
 
 // C_R_UD - READ
-app.get('/api/get', async (req, res) => {
-    const query = req.query.query;
-    console.log('READ query = ', query);
-    const records = await UserModel.find({name: query});   // this 
-    console.log('records = ', records);
-    // says: Give me everything
-    // const records = await UserModel.find({userName: 'mike'}); // every record with name == 'mike'
-    //.findOne({userName: 'mike'})
+app.get('/api/get/user', async (req, res) => {
+    const key = req.query.key;
+    const value = req.query.value;
+    console.log(`GET\nkey: ${key}\nvalue:${value}`);
+    const records = await UserModel.find({[key]: value});   // this 
     res.json(records);
 });
 
 // _C_RUD - Create
-app.post('/api/create', async (req, res) => {
+app.post('/api/create/user', async (req, res) => {
 	const record = req.body;
     // // Create (CRUD)
     const response = await UserModel.create(record);
-	console.log('Created new user = ', response);
+	// console.log('Created new user = ', response);
 	res.json({ status: 'ok' })
 })
 
