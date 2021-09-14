@@ -15,22 +15,31 @@ mongoose.connect(`mongodb+srv://mcoustier:${mongoAtlasPassword}@cluster0.1mm3m.m
 })
 
 app.use('/', express.static(path.resolve(__dirname, 'assets')))
-app.use(bodyParser.json());
-// CR_U_D - UPDATE
-app.post('/api/modify', async (req, res) => {
-    const { oldName: oldName, newName: newName } = req.body;
+app.use(bodyParser.json({limit: '5mb'}));
+
+// CR_U_D - UPDATE USER
+app.post('/api/modify/user', async (req, res) => {
+    const oldUser = req.body.oldData;
+    const updatedUser = req.body.updatedData;
     const response = await UserModel.updateOne({
-        userName: oldName
+        userName: oldUser.name
     }, {
         $set: {
-            userName: newName
+            name: updatedUser.name,
+            firstName: updatedUser.firstName,
+            lastName: updatedUser.lastName,
+            email: updatedUser.email,
+            phone: updatedUser.phone,
+            password: updatedUser.password,
+            description: updatedUser.description,
+            avatar: updatedUser.avatar
         }
     })
     console.log('modify response = ', response);
     res.json({status: 'ok modify'});
 });
 
-// C_R_UD - READ
+// C_R_UD - READ USER
 app.get('/api/get/user', async (req, res) => {
     const key = req.query.key;
     const value = req.query.value;
@@ -39,7 +48,12 @@ app.get('/api/get/user', async (req, res) => {
     res.json(records);
 });
 
-// _C_RUD - Create
+app.get('/api/get', async (req, res) => {
+    const records = await UserModel.find({});
+    res.json(records);
+});
+
+// _C_RUD - Create USER
 app.post('/api/create/user', async (req, res) => {
 	const record = req.body;
     // // Create (CRUD)
