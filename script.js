@@ -4,7 +4,8 @@ const app = express();
 const bodyParser = require('body-parser');
 // mongoose is a "wrapper" for mongodb
 const mongoose = require('mongoose')
-const UserModel = require('./models/instamike');
+const UserModel = require('./models/UserModel');
+const PostModel = require('./models/PostModel');
 
 
 const mongoAtlasPassword = 'TsYSzfJ7Y98N2Ew';
@@ -43,7 +44,7 @@ app.post('/api/modify/user', async (req, res) => {
 app.get('/api/get/user', async (req, res) => {
     const key = req.query.key;
     const value = req.query.value;
-    console.log(`GET\nkey: ${key}\nvalue:${value}`);
+    // console.log(`GET\nkey: ${key}\nvalue:${value}`);
     const records = await UserModel.find({[key]: value});   // this 
     res.json(records);
 });
@@ -53,12 +54,26 @@ app.get('/api/get', async (req, res) => {
     res.json(records);
 });
 
+app.get('/api/get/posts', async (req, res) => {
+    const records = await PostModel.find({});
+    res.json(records);
+});
+
 // _C_RUD - Create USER
 app.post('/api/create/user', async (req, res) => {
 	const record = req.body;
     // // Create (CRUD)
     const response = await UserModel.create(record);
 	// console.log('Created new user = ', response);
+	res.json({ status: 'ok' })
+})
+
+app.post('/api/create/post', async (req, res) => {
+    console.log("trying to create POST");
+	const record = req.body;
+    // // Create (CRUD)
+    const response = await PostModel.create(record);
+	// console.log('Created new POST = ', response);
 	res.json({ status: 'ok' })
 })
 

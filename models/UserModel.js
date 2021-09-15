@@ -17,19 +17,9 @@ const UserSchema = new mongoose.Schema({
         posts: { type: Array, required: true }, 
         followers: { type: Array, required: true }, 
         following: { type: Array, required: true }, 
-        timeStamp: { type: Number, default: Date.now(),
-        // _id <-- mongodb default key
-    },
-    // obj: nestedObj,
+        timeStamp: { type: Number, default: Date.now()},
 }, { collection: 'users'});
 
-// {
-//     record: 'a record',
-//     date: 12345,
-//     obj: {
-//         field1: 'an object as a field'
-//     }
-// }
 
 const model = mongoose.model('UserModel', UserSchema);
 
