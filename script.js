@@ -50,12 +50,12 @@ app.get('/api/get/user', async (req, res) => {
 });
 
 app.get('/api/get', async (req, res) => {
-    const records = await UserModel.find({});
+    const records = await UserModel.find({}).sort({'timeStamp': -1});
     res.json(records);
 });
 
 app.get('/api/get/posts', async (req, res) => {
-    const records = await PostModel.find({});
+    const records = await PostModel.find({}).sort({'timeStamp': -1});;
     res.json(records);
 });
 
@@ -70,6 +70,8 @@ app.post('/api/create/user', async (req, res) => {
 
 app.post('/api/create/post', async (req, res) => {
     console.log("trying to create POST");
+    const d = new Date();
+    console.log('Time CREATED = ', d.getHours(), d.getMinutes(), d.getSeconds());
 	const record = req.body;
     // // Create (CRUD)
     const response = await PostModel.create(record);
