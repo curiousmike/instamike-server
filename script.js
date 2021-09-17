@@ -26,14 +26,16 @@ app.post('/api/modify/user', async (req, res) => {
         userName: oldUser.name
     }, {
         $set: {
-            name: updatedUser.name,
-            firstName: updatedUser.firstName,
+            name: oldUser.name,
+            firstName: updatedUser.firstName, // OLD - non mod
             lastName: updatedUser.lastName,
             email: updatedUser.email,
             phone: updatedUser.phone,
-            password: updatedUser.password,
+            password: oldUser.password, // OLD - non mod
             description: updatedUser.description,
-            avatar: updatedUser.avatar
+            avatar: updatedUser.avatar,
+            followers: updatedUser.followers,
+            following: updatedUser.following,
         }
     })
     console.log('modify response = ', response);
