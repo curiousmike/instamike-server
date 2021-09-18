@@ -1,10 +1,5 @@
 const mongoose = require('mongoose');
 
-const nestedObj = new mongoose.Schema({ 
-    field1: String,
-})
-
-
 const UserSchema = new mongoose.Schema({
         name: { type: String, required: true },
         firstName: { type: String, required: true },
@@ -19,7 +14,6 @@ const UserSchema = new mongoose.Schema({
         following: { type: Array, required: true }, 
         timeStamp: { type: Date, default: Date.now},
 }, { collection: 'users'});
-
 
 const model = mongoose.model('UserModel', UserSchema);
 
