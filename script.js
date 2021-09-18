@@ -37,10 +37,10 @@ app.listen(port, ipAddress, () => {
 app.post('/api/modify/user', async (req, res) => {
     const oldUser = req.body.oldData;
     const updatedUser = req.body.updatedData;
-    console.log('\n\n\nMODIFY user =', oldUser.name);
+    console.log('\n\n\nMODIFY user =', oldUser.name, oldUser._id);
     const response = await UserModel.findOneAndUpdate(
         { 
-            userName: oldUser.name 
+            _id: oldUser._id 
         }, 
         {
             $set: {
@@ -60,9 +60,6 @@ app.post('/api/modify/user', async (req, res) => {
             returnOriginal: false,  // default is to return document as it was BEFORE update
         }
     )
-    await response.save();
-    console.log('modify response name, followers, following = ', response.name, response.followers, response.following);
-    // console.log('followers, following: =', oldUser.name, updatedUser.followers, updatedUser.following);
     res.json({status: 'ok'});
 });
 
