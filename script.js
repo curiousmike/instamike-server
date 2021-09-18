@@ -94,7 +94,7 @@ app.post('/api/create/user', async (req, res) => {
 //
 app.get('/api/get/posts', async (req, res) => {
     console.log('\n\n\nGET posts ');
-    const records = await PostModel.find({}).sort({'timeStamp': -1});;
+    const records = await PostModel.find({}).sort({'timeStamp': -1});
     res.json(records);
 });
 
@@ -105,3 +105,11 @@ app.post('/api/create/post', async (req, res) => {
     const response = await PostModel.create(record);
 	res.json({ status: 'ok' })
 })
+
+app.post('/api/delete/post', async (req, res) => {
+    const record = req.body;
+    console.log('\nDELETE - ', record);
+    const response = await PostModel.deleteOne(record);
+    console.log('records = ', response);
+    res.json({status: 'ok'});
+});
