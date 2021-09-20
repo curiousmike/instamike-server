@@ -14,7 +14,14 @@ const PostModel = require('./models/PostModel');
 //
 const mongoAtlasPassword = 'TsYSzfJ7Y98N2Ew';
 mongoose.connect(`mongodb+srv://mcoustier:${mongoAtlasPassword}@cluster0.1mm3m.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`).then (
-    () => console.log("connected to mongoDB"))
+    () => { 
+        const port = 4000;
+        const ipAddress = '127.0.0.1';
+        app.listen(port, ipAddress, () => {
+            console.log(`Server up ${ipAddress}:${port}`);
+        })
+        console.log("connected to mongoDB") 
+    })
     .catch(
         (err)=> {console.log('monogdb connect error = ', err)
 })
@@ -22,11 +29,6 @@ mongoose.connect(`mongodb+srv://mcoustier:${mongoAtlasPassword}@cluster0.1mm3m.m
 app.use('/', express.static(path.resolve(__dirname, 'assets')))
 app.use(bodyParser.json({limit: '5mb'}));
 
-const port = 4000;
-const ipAddress = '127.0.0.1';
-app.listen(port, ipAddress, () => {
-	console.log(`Server up ${ipAddress}:${port}`);
-})
 //
 //
 // USER FUNCTIONS
