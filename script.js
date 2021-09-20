@@ -56,6 +56,7 @@ app.post('/api/modify/user', async (req, res) => {
                 avatar: updatedUser.avatar,
                 followers: updatedUser.followers,
                 following: updatedUser.following,
+                blocked: updatedUser.blocked,
             },
         },
         {

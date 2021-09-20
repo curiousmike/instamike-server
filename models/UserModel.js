@@ -11,7 +11,8 @@ const UserSchema = new mongoose.Schema({
         avatar: { type: String, required: true },
         posts: { type: Array, required: true }, 
         followers: { type: Array, required: true }, 
-        following: { type: Array, required: true }, 
+        following: { type: Array, required: true },
+        blocked: { type: Array, required: true},
         timeStamp: { type: Date, default: Date.now},
 }, { collection: 'users'});
 
