@@ -116,3 +116,27 @@ app.post('/api/delete/post', async (req, res) => {
     console.log('records = ', response);
     res.json({status: 'ok'});
 });
+
+// CR_U_D - UPDATE POST
+app.post('/api/modify/post', async (req, res) => {
+    const oldPost = req.body.oldData;
+    const updatedPost = req.body.updatedData;
+    console.log('\n\n\nMODIFY post =', updatedPost.comments);
+    const response = await PostModel.findOneAndUpdate(
+        { 
+            _id: oldPost._id 
+        }, 
+        {
+            $set: {
+                description: updatedPost.description,
+                likes: updatedPost.likes,
+                comments: updatedPost.comments,
+            },
+        },
+        {
+            returnOriginal: false,  // default is to return document as it was BEFORE update
+        }
+    )
+    console.log('res', response)
+    res.json({status: 'ok'});
+});
