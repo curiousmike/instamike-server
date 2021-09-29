@@ -24,7 +24,7 @@ mongoose.connect(`mongodb+srv://mcoustier:${mongoAtlasPassword}@cluster0.1mm3m.m
     })
     .catch(
         (err)=> {console.log('monogdb connect error = ', err)
-})
+});
 
 app.use('/', express.static(path.resolve(__dirname, 'assets')))
 app.use(bodyParser.json({limit: '5mb'}));
@@ -102,7 +102,7 @@ app.get('/api/get/posts', async (req, res) => {
 });
 
 app.post('/api/create/post', async (req, res) => {
-    console.log('\n\n\nCREATE post ');
+    console.log('\n\n\nCREATE post - timestamp - ', Date.now());
 	const record = req.body;
     // // Create (CRUD)
     const response = await PostModel.create(record);
