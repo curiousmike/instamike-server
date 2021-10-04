@@ -57,6 +57,7 @@ app.post('/api/modify/user', async (req, res) => {
                 followers: updatedUser.followers,
                 following: updatedUser.following,
                 blocked: updatedUser.blocked,
+                notifications: updatedUser.notifications,
             },
         },
         {
