@@ -1,33 +1,54 @@
 const express = require('express')
 const path = require('path')
 const app = express();
+const Jimp = require('jimp');
 const bodyParser = require('body-parser');
 // mongoose is a "wrapper" for mongodb
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
 const UserModel = require('./models/UserModel');
 const PostModel = require('./models/PostModel');
 
-//
-//
+const jsftp = require('jsftp');
+const { fstat } = require('fs');
+
 // SETUP
-//
-//
+
 const mongoAtlasPassword = 'TsYSzfJ7Y98N2Ew';
-mongoose.connect(`mongodb+srv://mcoustier:${mongoAtlasPassword}@cluster0.1mm3m.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`).then (
-    () => { 
-        const port = 4000;
-        const ipAddress = '127.0.0.1';
-        app.listen(port, ipAddress, () => {
-            console.log(`Server up ${ipAddress}:${port}`);
-        })
-        console.log("connected to mongoDB") 
-    })
-    .catch(
-        (err)=> {console.log('monogdb connect error = ', err)
+mongoose
+  .connect(
+    `mongodb+srv://mcoustier:${mongoAtlasPassword}@cluster0.1mm3m.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`
+  )
+  .then(() => {
+    const port = 4000;
+    const ipAddress = '127.0.0.1';
+    app.listen(port, ipAddress, () => {
+      console.log(`Server up ${ipAddress}:${port}`);
+    });
+    console.log('connected to mongoDB');
+  })
+  .catch((err) => {
+    console.log('monogdb connect error = ', err);
+  });
+
+app.use('/', express.static(path.resolve(__dirname, 'assets')));
+app.use(bodyParser.json({ limit: '10mb' }));
+
+//
+// FTP setup
+//
+const FTP = new jsftp({
+  host: 'www.coustier.com',
+  port: 21,
+  user: 'couszmiz',
+  pass: 'Tigerwoods1729!',
 });
 
-app.use('/', express.static(path.resolve(__dirname, 'assets')))
-app.use(bodyParser.json({limit: '5mb'}));
+const ftpUserPostRootPath = '/public_html/instamike/binary/user/posts';
+// FTP.list(ftpUserPostRootPath, (err, res) => {
+//   console.log('res', res);
+// });
+
+// console.log('FTP = ', FTP);
 
 //
 //
@@ -37,58 +58,67 @@ app.use(bodyParser.json({limit: '5mb'}));
 
 // CR_U_D - UPDATE USER
 app.post('/api/modify/user', async (req, res) => {
-    const oldUser = req.body.oldData;
-    const updatedUser = req.body.updatedData;
-    console.log('\n\n\nMODIFY user =', oldUser.name, oldUser._id);
-    const response = await UserModel.findOneAndUpdate(
-        { 
-            _id: oldUser._id 
-        }, 
-        {
-            $set: {
-                name: oldUser.name,
-                firstName: updatedUser.firstName, // OLD - non mod
-                lastName: updatedUser.lastName,
-                email: updatedUser.email,
-                phone: updatedUser.phone,
-                password: oldUser.password, // OLD - non mod
-                description: updatedUser.description,
-                avatar: updatedUser.avatar,
-                followers: updatedUser.followers,
-                following: updatedUser.following,
-                blocked: updatedUser.blocked,
-            },
-        },
-        {
-            returnOriginal: false,  // default is to return document as it was BEFORE update
-        }
-    )
-    res.json({status: 'ok'});
+  const oldUser = req.body.oldData;
+  const updatedUser = req.body.updatedData;
+  console.log('\n\n\nMODIFY user =', oldUser.name, oldUser._id);
+  const response = await UserModel.findOneAndUpdate(
+    {
+      _id: oldUser._id,
+    },
+    {
+      $set: {
+        name: oldUser.name,
+        firstName: updatedUser.firstName, // OLD - non mod
+        lastName: updatedUser.lastName,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        password: oldUser.password, // OLD - non mod
+        description: updatedUser.description,
+        avatar: updatedUser.avatar,
+        followers: updatedUser.followers,
+        following: updatedUser.following,
+        notifications: updatedUser.notifications,
+        blocked: updatedUser.blocked,
+      },
+    },
+    {
+      returnOriginal: false, // default is to return document as it was BEFORE update
+    }
+  );
+  res.json({ status: 'ok' });
 });
 
 // C_R_UD - READ USER
 app.get('/api/get/user', async (req, res) => {
-    const key = req.query.key;
-    const value = req.query.value;
-    console.log('\n\nGET user = ', key ,value);
-    const records = await UserModel.find({[key]: value});   // this 
-    res.json(records);
+  const key = req.query.key;
+  const value = req.query.value;
+  console.log('\n\nGET user = ', key, value);
+  const records = await UserModel.find({ [key]: value }); // this
+  res.json(records);
 });
 
 // Get all users
 app.get('/api/get', async (req, res) => {
-    console.log('\n\nGET userS');
-    const records = await UserModel.find({}).sort({'timeStamp': -1});
-    res.json(records);
+  console.log('\n\nGET userS');
+  const records = await UserModel.find({}).sort({ timeStamp: -1 });
+  res.json(records);
 });
 
 // _C_RUD - Create USER
 app.post('/api/create/user', async (req, res) => {
-    console.log('\n\n\nCREATE user ');
-	const record = req.body;
-    const response = await UserModel.create(record);
-	res.json({ status: 200 })
-})
+  console.log('\n\n\nCREATE user ');
+  const record = req.body;
+  const response = await UserModel.create(record);
+  res.json({ status: 200 });
+  const yourPath = `${ftpUserPostRootPath}/${record.name}`;
+  FTP.raw('mkd', yourPath, (err, data) => {
+    if (err) {
+      return console.error(err);
+    }
+    console.log(data.text); // Show the FTP response text to the user
+    console.log(data.code); // Show the FTP response code to the user
+  });
+});
 
 //
 //
@@ -96,18 +126,33 @@ app.post('/api/create/user', async (req, res) => {
 //
 //
 app.get('/api/get/posts', async (req, res) => {
-    console.log('\n\n\nGET posts ');
-    const records = await PostModel.find({}).sort({'timeStamp': -1});
-    res.json(records);
+  console.log('\n\n\nGET posts ', req);
+  const records = await PostModel.find({}); //.sort({ timeStamp: -1 });
+  res.json(records);
 });
 
+
 app.post('/api/create/post', async (req, res) => {
-    console.log('\n\n\nCREATE post - timestamp - ', Date.now());
-	const record = req.body;
-    // // Create (CRUD)
-    const response = await PostModel.create(record);
-	res.json({ status: 'ok' })
-})
+  console.log('\n\n\nCREATE post - timestamp - ', Date.now(), req.name);
+  const record = req.body;
+  // // Create (CRUD)
+  const response = await PostModel.create(record);
+  res.json({ status: 'ok' });
+
+  const yourPath = `${ftpUserPostRootPath}/${record.name}`;
+  const fileName = `${yourPath}/${Date.now()}-image.jpg`; // is it really a jpg?
+  // copy to ftp
+  let data = Buffer.from(record.image, 'base64');
+  let data2 = new Buffer.alloc(data.length - 15);
+  data.copy(data2, 0, 15, data.length); // Mystery - for some reason, when doing the buffer.from base64 above, I get an extra 15 bytes at beginning of result. Strip those here.
+  FTP.put(data2, fileName, (err) => {
+    if (!err) {
+      console.log('image upload!');
+    } else {
+      console.log('\n\n\nFTP put image error = ', err);
+    }
+  });
+});
 
 app.post('/api/delete/post', async (req, res) => {
     const record = req.body;
