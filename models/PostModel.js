@@ -7,14 +7,18 @@ const CommentSchema = new mongoose.Schema({
     timeStamp: { type: Number, default: Date.now()},
 });
 
-const PostSchema = new mongoose.Schema({
-    name: { type: String, required: true },         // user who posted it
-    timeStamp: { type: Number, default: Date.now()},// timestamp
-    description: { type: String, required: true },  // the description of the post
-    likes: [{ type: String, required: true }],      // array of users who liked it
-    comments: {type: [CommentSchema]},              // array of comments
-    image: { type: String, required: true },        // the image data - TODO: array of images?
-}, { collection: 'posts'});
+const PostSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true }, // user who posted it
+    timeStamp: { type: Number, default: Date.now() }, // timestamp
+    description: { type: String, required: true }, // the description of the post
+    likes: [{ type: String, required: true }], // array of users who liked it
+    comments: { type: [CommentSchema] }, // array of comments
+    fileName: { type: String, required: true }, // the image data - TODO: array of images?
+    // fileNameSmall: { type: String, required: true },
+  },
+  { collection: 'posts' }
+);
 
 
 const model = mongoose.model('PostModel', PostSchema);

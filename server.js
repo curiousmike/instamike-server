@@ -7,8 +7,8 @@ const mongoose = require('mongoose');
 const UserModel = require('./models/UserModel');
 const PostModel = require('./models/PostModel');
 
-const jsftp = require('jsftp');
-
+const jsftp = require('jsftp'); // for ftp transfer
+const sharp = require('sharp'); // for image resize
 // SETUP
 
 const mongoAtlasPassword = 'TsYSzfJ7Y98N2Ew';
@@ -42,6 +42,7 @@ const FTP = new jsftp({
 });
 
 const ftpUserPostRootPath = '/public_html/instamike/binary/user/posts';
+const ftpUserPostRootPathSimple = '/instamike/binary/user/posts';
 // FTP.list(ftpUserPostRootPath, (err, res) => {
 //   console.log('res', res);
 // });
@@ -126,14 +127,19 @@ app.post('/api/create/user', async (req, res) => {
 app.get('/api/get/posts', async (req, res) => {
   console.log('\n\n\nGET posts ', req);
   const records = await PostModel.find({}); //.sort({ timeStamp: -1 });
+  // console.log('\n\n\n\n\nrecords = ', records);
   res.json(records);
 });
 
 app.post('/api/create/post', async (req, res) => {
-  console.log('\n\n\nCREATE post - timestamp - ', Date.now(), req.name);
+  // removing this comment causes Date.now to make this function wonky
+  const timeStamp = Date.now();
   const record = req.body;
-  const yourPath = `${ftpUserPostRootPath}/${record.name}`;
-  record.fileName = `${yourPath}/${Date.now()}-image.jpg`; // is it really a jpg?
+  const yourPath = `${ftpUserPostRootPathSimple}/${record.name}`;
+  const fileName = `${yourPath}/${timeStamp}-image.jpg`;
+  const fileNameSmall = `${yourPath}/${timeStamp}-image-small.jpg`;
+  record.fileName = fileName; // is it really a jpg?
+  // record.fileNameSmall = fileNameSmall;
   // // Create (CRUD)
   const response = await PostModel.create(record);
   res.json({ status: 'ok' });
@@ -142,7 +148,11 @@ app.post('/api/create/post', async (req, res) => {
   let data = Buffer.from(record.image, 'base64');
   let finalData = new Buffer.alloc(data.length - 15);
   data.copy(finalData, 0, 15, data.length); // Mystery - for some reason, when doing the buffer.from base64 above, I get an extra 15 bytes at beginning of result. Strip those here.
-  FTP.put(finalData, fileName, (err) => {
+  const resizedData = sharp(finalData).resize(256, 256);
+  console.log('resize = ', resizedData);
+  const uploadPathPlusFilename = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image.jpg`;
+  // console.log('fullpath = ', uploadPathPlusFilename);
+  FTP.put(finalData, uploadPathPlusFilename, (err) => {
     if (!err) {
       console.log('image upload!');
     } else {
@@ -152,11 +162,11 @@ app.post('/api/create/post', async (req, res) => {
 });
 
 app.post('/api/delete/post', async (req, res) => {
-    const record = req.body;
-    console.log('\nDELETE - ', record);
-    const response = await PostModel.deleteOne(record);
-    console.log('records = ', response);
-    res.json({status: 'ok'});
+  const record = req.body;
+  console.log('\nDELETE - ', record);
+  const response = await PostModel.deleteOne(record);
+  // console.log('records = ', response);
+  res.json({ status: 'ok' });
 });
 
 // CR_U_D - UPDATE POST
