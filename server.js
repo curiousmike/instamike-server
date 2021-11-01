@@ -127,7 +127,7 @@ app.post('/api/create/user', async (req, res) => {
 app.get('/api/get/posts', async (req, res) => {
   console.log('\n\n\nGET posts ', req);
   const records = await PostModel.find({}); //.sort({ timeStamp: -1 });
-  // console.log('\n\n\n\n\nrecords = ', records);
+  console.log('\n\n\n\n\nrecords = ', records);
   res.json(records);
 });
 
@@ -139,7 +139,7 @@ app.post('/api/create/post', async (req, res) => {
   const fileName = `${yourPath}/${timeStamp}-image.jpg`;
   const fileNameSmall = `${yourPath}/${timeStamp}-image-small.jpg`;
   record.fileName = fileName; // is it really a jpg?
-  // record.fileNameSmall = fileNameSmall;
+  record.fileNameSmall = fileNameSmall;
   // // Create (CRUD)
   const response = await PostModel.create(record);
   res.json({ status: 'ok' });
@@ -148,8 +148,8 @@ app.post('/api/create/post', async (req, res) => {
   let data = Buffer.from(record.image, 'base64');
   let finalData = new Buffer.alloc(data.length - 15);
   data.copy(finalData, 0, 15, data.length); // Mystery - for some reason, when doing the buffer.from base64 above, I get an extra 15 bytes at beginning of result. Strip those here.
-  const resizedData = sharp(finalData).resize(256, 256);
-  console.log('resize = ', resizedData);
+  // const resizedData = sharp(finalData).resize(256, 256);
+  // console.log('resize = ', resizedData);
   const uploadPathPlusFilename = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image.jpg`;
   // console.log('fullpath = ', uploadPathPlusFilename);
   FTP.put(finalData, uploadPathPlusFilename, (err) => {

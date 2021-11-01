@@ -15,7 +15,7 @@ const PostSchema = new mongoose.Schema(
     likes: [{ type: String, required: true }], // array of users who liked it
     comments: { type: [CommentSchema] }, // array of comments
     fileName: { type: String, required: true }, // the image data - TODO: array of images?
-    // fileNameSmall: { type: String, required: true },
+    fileNameSmall: { type: String, required: true },
   },
   { collection: 'posts' }
 );
