@@ -1,7 +1,6 @@
 const express = require('express')
 const path = require('path')
 const app = express();
-const Jimp = require('jimp');
 const bodyParser = require('body-parser');
 // mongoose is a "wrapper" for mongodb
 const mongoose = require('mongoose');
@@ -9,7 +8,6 @@ const UserModel = require('./models/UserModel');
 const PostModel = require('./models/PostModel');
 
 const jsftp = require('jsftp');
-const { fstat } = require('fs');
 
 // SETUP
 
@@ -131,21 +129,20 @@ app.get('/api/get/posts', async (req, res) => {
   res.json(records);
 });
 
-
 app.post('/api/create/post', async (req, res) => {
   console.log('\n\n\nCREATE post - timestamp - ', Date.now(), req.name);
   const record = req.body;
+  const yourPath = `${ftpUserPostRootPath}/${record.name}`;
+  record.fileName = `${yourPath}/${Date.now()}-image.jpg`; // is it really a jpg?
   // // Create (CRUD)
   const response = await PostModel.create(record);
   res.json({ status: 'ok' });
 
-  const yourPath = `${ftpUserPostRootPath}/${record.name}`;
-  const fileName = `${yourPath}/${Date.now()}-image.jpg`; // is it really a jpg?
   // copy to ftp
   let data = Buffer.from(record.image, 'base64');
-  let data2 = new Buffer.alloc(data.length - 15);
-  data.copy(data2, 0, 15, data.length); // Mystery - for some reason, when doing the buffer.from base64 above, I get an extra 15 bytes at beginning of result. Strip those here.
-  FTP.put(data2, fileName, (err) => {
+  let finalData = new Buffer.alloc(data.length - 15);
+  data.copy(finalData, 0, 15, data.length); // Mystery - for some reason, when doing the buffer.from base64 above, I get an extra 15 bytes at beginning of result. Strip those here.
+  FTP.put(finalData, fileName, (err) => {
     if (!err) {
       console.log('image upload!');
     } else {
