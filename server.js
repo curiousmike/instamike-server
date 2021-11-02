@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const UserModel = require('./models/UserModel');
 const PostModel = require('./models/PostModel');
 const jsftp = require('jsftp'); // for ftp transfer
+const sharp = require('sharp'); // for image resizing
 //
 //
 // SETUP
@@ -153,14 +154,28 @@ app.post('/api/create/post', async (req, res) => {
   // const resizedData = sharp(finalData).resize(256, 256);
   // console.log('resize = ', resizedData);
   const uploadPathPlusFilename = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image.jpg`;
+  const uploadPathPlusFilenameSmall = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image-small.jpg`;
   // console.log('fullpath = ', uploadPathPlusFilename);
-  FTP.put(finalData, uploadPathPlusFilename, (err) => {
-    if (!err) {
-      console.log('image upload!');
-    } else {
-      console.log('\n\n\nFTP put image error = ', err);
-    }
-  });
+
+  sharp(finalData)
+    .resize(800)
+    .toBuffer()
+    .then((data) => {
+      FTP.put(data, uploadPathPlusFilenameSmall, (err) => {
+        if (!err) {
+          console.log('small image uploaded ok!');
+          FTP.put(finalData, uploadPathPlusFilename, (err) => {
+            if (!err) {
+              console.log('big image upload ok!');
+            } else {
+              console.log('\n\n\nFTP put image error = ', err);
+            }
+          });
+        } else {
+          console.log('\n\n\nsmall FTP put image error = ', err);
+        }
+      });
+    });
 });
 
 app.post('/api/delete/post', async (req, res) => {
