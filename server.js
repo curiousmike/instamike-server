@@ -1,16 +1,17 @@
-const express = require('express')
-const path = require('path')
+const express = require('express');
+const path = require('path');
 const app = express();
 const bodyParser = require('body-parser');
 // mongoose is a "wrapper" for mongodb
 const mongoose = require('mongoose');
 const UserModel = require('./models/UserModel');
 const PostModel = require('./models/PostModel');
-
 const jsftp = require('jsftp'); // for ftp transfer
-const sharp = require('sharp'); // for image resize
+//
+//
 // SETUP
-
+//
+//
 const mongoAtlasPassword = 'TsYSzfJ7Y98N2Ew';
 mongoose
   .connect(
@@ -29,8 +30,11 @@ mongoose
   });
 
 app.use('/', express.static(path.resolve(__dirname, 'assets')));
-app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.json({ limit: '5mb' }));
 
+//
+// FTP Setup
+//
 //
 // FTP setup
 //
@@ -43,11 +47,6 @@ const FTP = new jsftp({
 
 const ftpUserPostRootPath = '/public_html/instamike/binary/user/posts';
 const ftpUserPostRootPathSimple = '/instamike/binary/user/posts';
-// FTP.list(ftpUserPostRootPath, (err, res) => {
-//   console.log('res', res);
-// });
-
-// console.log('FTP = ', FTP);
 
 //
 //
@@ -76,7 +75,6 @@ app.post('/api/modify/user', async (req, res) => {
         avatar: updatedUser.avatar,
         followers: updatedUser.followers,
         following: updatedUser.following,
-        notifications: updatedUser.notifications,
         blocked: updatedUser.blocked,
       },
     },
@@ -109,6 +107,8 @@ app.post('/api/create/user', async (req, res) => {
   const record = req.body;
   const response = await UserModel.create(record);
   res.json({ status: 200 });
+
+  // setup FTP path for this new user
   const yourPath = `${ftpUserPostRootPath}/${record.name}`;
   FTP.raw('mkd', yourPath, (err, data) => {
     if (err) {
@@ -125,25 +125,27 @@ app.post('/api/create/user', async (req, res) => {
 //
 //
 app.get('/api/get/posts', async (req, res) => {
-  console.log('\n\n\nGET posts ', req);
-  const records = await PostModel.find({}); //.sort({ timeStamp: -1 });
-  console.log('\n\n\n\n\nrecords = ', records);
+  console.log('\n\n\nGET posts ');
+  const records = await PostModel.find({}).sort({ timeStamp: -1 });
   res.json(records);
 });
 
 app.post('/api/create/post', async (req, res) => {
-  // removing this comment causes Date.now to make this function wonky
+  console.log('\n\n\nCREATE post - timestamp - ', Date.now());
   const timeStamp = Date.now();
+
   const record = req.body;
   const yourPath = `${ftpUserPostRootPathSimple}/${record.name}`;
   const fileName = `${yourPath}/${timeStamp}-image.jpg`;
   const fileNameSmall = `${yourPath}/${timeStamp}-image-small.jpg`;
   record.fileName = fileName; // is it really a jpg?
   record.fileNameSmall = fileNameSmall;
+
   // // Create (CRUD)
   const response = await PostModel.create(record);
   res.json({ status: 'ok' });
 
+  //
   // copy to ftp
   let data = Buffer.from(record.image, 'base64');
   let finalData = new Buffer.alloc(data.length - 15);
@@ -165,30 +167,30 @@ app.post('/api/delete/post', async (req, res) => {
   const record = req.body;
   console.log('\nDELETE - ', record);
   const response = await PostModel.deleteOne(record);
-  // console.log('records = ', response);
+  console.log('records = ', response);
   res.json({ status: 'ok' });
 });
 
 // CR_U_D - UPDATE POST
 app.post('/api/modify/post', async (req, res) => {
-    const oldPost = req.body.oldData;
-    const updatedPost = req.body.updatedData;
-    console.log('\n\n\nMODIFY post =', updatedPost.comments);
-    const response = await PostModel.findOneAndUpdate(
-        { 
-            _id: oldPost._id 
-        }, 
-        {
-            $set: {
-                description: updatedPost.description,
-                likes: updatedPost.likes,
-                comments: updatedPost.comments,
-            },
-        },
-        {
-            returnOriginal: false,  // default is to return document as it was BEFORE update
-        }
-    )
-    console.log('res', response)
-    res.json({status: 'ok'});
+  const oldPost = req.body.oldData;
+  const updatedPost = req.body.updatedData;
+  console.log('\n\n\nMODIFY post =', updatedPost.comments);
+  const response = await PostModel.findOneAndUpdate(
+    {
+      _id: oldPost._id,
+    },
+    {
+      $set: {
+        description: updatedPost.description,
+        likes: updatedPost.likes,
+        comments: updatedPost.comments,
+      },
+    },
+    {
+      returnOriginal: false, // default is to return document as it was BEFORE update
+    }
+  );
+  console.log('res', response);
+  res.json({ status: 'ok' });
 });
