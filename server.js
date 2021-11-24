@@ -132,54 +132,45 @@ app.get("/api/get/posts", async (req, res) => {
 });
 
 app.post("/api/create/post", async (req, res) => {
-  console.log("\n\n\nCREATE post - timestamp - ", Date.now());
   const timeStamp = Date.now();
 
   const record = req.body;
+  console.log("\n\n\nCREATE post - timestamp - ", Date.now(), record.name, record.description);
   const yourPath = `${ftpUserPostRootPathSimple}/${record.name}`;
   const fileName = `${yourPath}/${timeStamp}-image.jpg`;
   const fileNameSmall = `${yourPath}/${timeStamp}-image-small.jpg`;
   record.fileName = fileName; // is it really a jpg?
   record.fileNameSmall = fileNameSmall;
 
-  // // Create (CRUD)
-  const response = await PostModel.create(record);
-  res.json({
-    statusText: "ok",
-    fileNames: { full: fileName, small: fileNameSmall },
-  });
 
   //
   // copy to ftp
   let data = Buffer.from(record.image, "base64");
   let finalData = new Buffer.alloc(data.length - 15);
   data.copy(finalData, 0, 15, data.length); // Mystery - for some reason, when doing the buffer.from base64 above, I get an extra 15 bytes at beginning of result. Strip those here.
-  // const resizedData = sharp(finalData).resize(256, 256);
-  // console.log('resize = ', resizedData);
   const uploadPathPlusFilename = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image.jpg`;
   const uploadPathPlusFilenameSmall = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image-small.jpg`;
-  // console.log('fullpath = ', uploadPathPlusFilename);
 
   sharp(finalData)
-    .resize(800)
+    .resize(512)
     .toBuffer()
     .then((data) => {
       FTP.put(data, uploadPathPlusFilenameSmall, (err) => {
         if (!err) {
-          console.log("small image uploaded ok!");
-          FTP.put(finalData, uploadPathPlusFilename, (err) => {
-            if (!err) {
-              console.log("big image upload ok!");
-            } else {
-              console.log("\n\n\nFTP put image error = ", err);
-            }
-          });
-        } else {
-          console.log("\n\n\nsmall FTP put image error = ", err);
+          FTP.put(finalData, uploadPathPlusFilename); // blindly upload the fullsize
+          return doCreate(res, record, fileName, fileNameSmall);
         }
       });
     });
 });
+
+const doCreate = async (res, record, fileName, fileNameSmall) => {
+  const response = await PostModel.create(record);
+  return res.json({
+    statusText: "ok",
+    fileNames: { full: fileName, small: fileNameSmall },
+  });
+}
 
 app.post("/api/delete/post", async (req, res) => {
   const record = req.body;
