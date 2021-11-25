@@ -31,7 +31,7 @@ mongoose
   });
 
 app.use("/", express.static(path.resolve(__dirname, "assets")));
-app.use(bodyParser.json({ limit: "5mb" }));
+app.use(bodyParser.json({ limit: "7mb" }));
 
 //
 // FTP Setup
@@ -59,7 +59,7 @@ const ftpUserPostRootPathSimple = "/instamike/binary/user/posts";
 app.post("/api/modify/user", async (req, res) => {
   const oldUser = req.body.oldData;
   const updatedUser = req.body.updatedData;
-  console.log("\n\n\nMODIFY user =", oldUser.name, oldUser._id);
+  console.log("\n\n\nMODIFY user =", oldUser.name, oldUser._id, updatedUser);
   const response = await UserModel.findOneAndUpdate(
     {
       _id: oldUser._id,
@@ -77,6 +77,7 @@ app.post("/api/modify/user", async (req, res) => {
         followers: updatedUser.followers,
         following: updatedUser.following,
         blocked: updatedUser.blocked,
+        notifications: updatedUser.notifications,
       },
     },
     {
