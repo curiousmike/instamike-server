@@ -139,8 +139,10 @@ app.post("/api/create/post", async (req, res) => {
   console.log("\n\n\nCREATE post - timestamp - ", Date.now(), record.name, record.description);
   const yourPath = `${ftpUserPostRootPathSimple}/${record.name}`;
   const fileName = `${yourPath}/${timeStamp}-image.jpg`;
+  const fileNameMedium = `${yourPath}/${timeStamp}-image-medium.jpg`;
   const fileNameSmall = `${yourPath}/${timeStamp}-image-small.jpg`;
   record.fileName = fileName; // is it really a jpg?
+  record.fileNameMedium = fileNameMedium;
   record.fileNameSmall = fileNameSmall;
 
 
@@ -150,17 +152,25 @@ app.post("/api/create/post", async (req, res) => {
   let finalData = new Buffer.alloc(data.length - 15);
   data.copy(finalData, 0, 15, data.length); // Mystery - for some reason, when doing the buffer.from base64 above, I get an extra 15 bytes at beginning of result. Strip those here.
   const uploadPathPlusFilename = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image.jpg`;
+  const uploadPathPlusFilenameMedium = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image-medium.jpg`;
   const uploadPathPlusFilenameSmall = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image-small.jpg`;
 
+  const smallSize = 256;
+  const mediumSize = 512;
   sharp(finalData)
-    .resize(512)
+    .resize(smallSize)
     .toBuffer()
-    .then((data) => {
-      FTP.put(data, uploadPathPlusFilenameSmall, (err) => {
-        if (!err) {
-          FTP.put(finalData, uploadPathPlusFilename); // blindly upload the fullsize
-          return doCreate(res, record, fileName, fileNameSmall);
-        }
+    .then((smallData) => {
+      FTP.put(smallData, uploadPathPlusFilenameSmall, () => {
+      sharp(finalData)
+        .resize(mediumSize)
+        .toBuffer()
+        .then((mediumData) => {
+          FTP.put(mediumData, uploadPathPlusFilenameMedium, () => {
+            FTP.put(finalData, uploadPathPlusFilename); // blindly upload the fullsize
+            return doCreate(res, record, fileName, fileNameSmall);
+          });
+        });
       });
     });
 });
