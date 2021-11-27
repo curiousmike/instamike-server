@@ -16,6 +16,7 @@ const PostSchema = new mongoose.Schema(
     comments: { type: [CommentSchema] }, // array of comments
     fileName: { type: String, required: true }, // the image data - TODO: array of images?
     fileNameSmall: { type: String, required: true },
+    fileNameMedium: { type: String, required: true },
   },
   { collection: 'posts' }
 );

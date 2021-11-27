@@ -47,7 +47,9 @@ const FTP = new jsftp({
 });
 
 const ftpUserPostRootPath = "/public_html/instamike/binary/user/posts";
+const ftpUserAvatarRootPath = "/public_html/instamike/binary/user/avatar";
 const ftpUserPostRootPathSimple = "/instamike/binary/user/posts";
+const ftpUserAvatarRootPathSimple = "/instamike/binary/user/avatar";
 
 //
 //
@@ -107,19 +109,61 @@ app.get("/api/get", async (req, res) => {
 app.post("/api/create/user", async (req, res) => {
   console.log("\n\n\nCREATE user ");
   const record = req.body;
-  const response = await UserModel.create(record);
-  res.json({ status: 200 });
 
   // setup FTP path for this new user
-  const yourPath = `${ftpUserPostRootPath}/${record.name}`;
-  FTP.raw("mkd", yourPath, (err, data) => {
+  const yourPath = `${ftpUserAvatarRootPath}/${record.name}`;
+  FTP.raw("mkd", yourPath, (err, folderResultData) => {
     if (err) {
-      return console.error(err);
+      console.error(err); // hopefully just "already exists"
     }
-    console.log(data.text); // Show the FTP response text to the user
-    console.log(data.code); // Show the FTP response code to the user
+    console.log(folderResultData.text); // Show the FTP response text to the user
+    console.log(folderResultData.code); // Show the FTP response code to the user
+    //
+    // copy avatar to ftp
+    let data = Buffer.from(record.avatar, "base64");
+    let finalData = new Buffer.alloc(data.length - 15);
+    data.copy(finalData, 0, 15, data.length); // Mystery - for some reason, when doing the buffer.from base64 above, I get an extra 15 bytes at beginning of result. Strip those here.
+    const yourPathSimple = `${ftpUserAvatarRootPathSimple}/${record.name}`
+    const uploadPathPlusFilename = `${yourPathSimple}/avatar.jpg`;
+    const uploadPathPlusFilenameMedium = `${yourPathSimple}/avatar-medium.jpg`;
+    const uploadPathPlusFilenameSmall = `${yourPathSimple}/avatar-small.jpg`;
+    record.avatarFileName = uploadPathPlusFilename;
+    record.avatarFileNameMedium = uploadPathPlusFilenameMedium;
+    record.avatarFileNameSmall = uploadPathPlusFilenameSmall;
+
+    const ftpUploadPathPlusFilename = `${ftpUserAvatarRootPath}/${record.name}/avatar.jpg`;
+    const ftpUploadPathPlusFilenameMedium = `${ftpUserAvatarRootPath}/${record.name}/avatar-medium.jpg`;
+    const ftpUploadPathPlusFilenameSmall = `${ftpUserAvatarRootPath}/${record.name}/avatar-small.jpg`;
+
+    const smallSize = 256;
+    const mediumSize = 512;
+    sharp(finalData)
+      .resize(smallSize)
+      .toBuffer()
+      .then((smallData) => {
+        FTP.put(smallData, ftpUploadPathPlusFilenameSmall, () => {
+        sharp(finalData)
+          .resize(mediumSize)
+          .toBuffer()
+          .then((mediumData) => {
+            FTP.put(mediumData, ftpUploadPathPlusFilenameMedium, () => {
+              FTP.put(finalData, ftpUploadPathPlusFilename); // blindly upload the fullsize
+              doUserCreate(record, res, uploadPathPlusFilename, uploadPathPlusFilenameSmall, uploadPathPlusFilenameMedium);
+            });
+          });
+        });
+      });
   });
+
 });
+
+const doUserCreate = async (record, res, avatarFileName, avatarFileNameSmall, avatarFileNameMedium) => {
+  await UserModel.create(record);
+  res.json({
+    status: 200,
+    fileNames: { full: avatarFileName, small: avatarFileNameSmall, medium: avatarFileNameMedium },
+  });
+}
 
 //
 //
@@ -132,6 +176,9 @@ app.get("/api/get/posts", async (req, res) => {
   res.json(records);
 });
 
+//
+// Create new post
+// 
 app.post("/api/create/post", async (req, res) => {
   const timeStamp = Date.now();
 
@@ -145,41 +192,50 @@ app.post("/api/create/post", async (req, res) => {
   record.fileNameMedium = fileNameMedium;
   record.fileNameSmall = fileNameSmall;
 
+  // setup FTP path for this user
+  const newFolderPath = `${ftpUserPostRootPath}/${record.name}`;
+  FTP.raw("mkd", newFolderPath, (err, folderDataResult) => {
+    if (err) {
+      console.error(err);
+    }
+    console.log(folderDataResult.text); // Show the FTP response text to the user
+    console.log(folderDataResult.code); // Show the FTP response code to the user
+    //
+    // copy to ftp
+    let data = Buffer.from(record.image, "base64");
+    let finalData = new Buffer.alloc(data.length - 15);
+    data.copy(finalData, 0, 15, data.length); // Mystery - for some reason, when doing the buffer.from base64 above, I get an extra 15 bytes at beginning of result. Strip those here.
+    const uploadPathPlusFilename = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image.jpg`;
+    const uploadPathPlusFilenameMedium = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image-medium.jpg`;
+    const uploadPathPlusFilenameSmall = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image-small.jpg`;
 
-  //
-  // copy to ftp
-  let data = Buffer.from(record.image, "base64");
-  let finalData = new Buffer.alloc(data.length - 15);
-  data.copy(finalData, 0, 15, data.length); // Mystery - for some reason, when doing the buffer.from base64 above, I get an extra 15 bytes at beginning of result. Strip those here.
-  const uploadPathPlusFilename = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image.jpg`;
-  const uploadPathPlusFilenameMedium = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image-medium.jpg`;
-  const uploadPathPlusFilenameSmall = `${ftpUserPostRootPath}/${record.name}/${timeStamp}-image-small.jpg`;
-
-  const smallSize = 256;
-  const mediumSize = 512;
-  sharp(finalData)
-    .resize(smallSize)
-    .toBuffer()
-    .then((smallData) => {
-      FTP.put(smallData, uploadPathPlusFilenameSmall, () => {
-      sharp(finalData)
-        .resize(mediumSize)
-        .toBuffer()
-        .then((mediumData) => {
-          FTP.put(mediumData, uploadPathPlusFilenameMedium, () => {
-            FTP.put(finalData, uploadPathPlusFilename); // blindly upload the fullsize
-            return doCreate(res, record, fileName, fileNameSmall);
+    const smallSize = 256;
+    const mediumSize = 512;
+    sharp(finalData)
+      .resize(smallSize)
+      .toBuffer()
+      .then((smallData) => {
+        FTP.put(smallData, uploadPathPlusFilenameSmall, () => {
+        sharp(finalData)
+          .resize(mediumSize)
+          .toBuffer()
+          .then((mediumData) => {
+            FTP.put(mediumData, uploadPathPlusFilenameMedium, () => {
+              FTP.put(finalData, uploadPathPlusFilename); // blindly upload the fullsize
+              return doPostCreate(res, record, fileName, fileNameSmall, fileNameMedium);
+            });
           });
         });
       });
-    });
+  });
+
 });
 
-const doCreate = async (res, record, fileName, fileNameSmall) => {
+const doPostCreate = async (res, record, fileName, fileNameSmall, fileNameMedium) => {
   const response = await PostModel.create(record);
   return res.json({
     statusText: "ok",
-    fileNames: { full: fileName, small: fileNameSmall },
+    fileNames: { full: fileName, small: fileNameSmall, medium: fileNameMedium },
   });
 }
 
