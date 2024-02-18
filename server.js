@@ -196,19 +196,15 @@ app.post("/api/create/post", async (req, res) => {
   const record = req.body;
   const yourPath = `binary/user/${record.name}`;
   console.log("your path = ", yourPath);
-  const fileName = `${yourPath}/${timeStamp}-image.jpg`;
-  const fileNameMedium = `${yourPath}/${timeStamp}-image-medium.jpg`;
-  const fileNameSmall = `${yourPath}/${timeStamp}-image-small.jpg`;
-  record.fileName = fileName; // is it really a jpg?
-  record.fileNameMedium = fileNameMedium;
-  record.fileNameSmall = fileNameSmall;
+  record.fileName = `${yourPath}/${timeStamp}-image.jpg`;
+  record.fileNameMedium = `${yourPath}/${timeStamp}-image-medium.jpg`;
+  record.fileNameSmall = `${yourPath}/${timeStamp}-image-small.jpg`;
 
   let data = Buffer.from(record.image, "base64");
   let finalData = new Buffer.alloc(data.length - 15);
   data.copy(finalData, 0, 15, data.length); // Mystery - for some reason, when doing the buffer.from base64 above, I get an extra 15 bytes at beginning of result. Strip those here.
-  console.log("fileName created = ", record.fileName);
-  console.log("and fully written to ", "../instamike/public/" + fileName);
-  fs.writeFile("../instamike/public/" + fileName, finalData, (err) => {
+  console.log("written to ", "../instamike/public/" + record.fileName);
+  fs.writeFile("../instamike/public/" + record.fileName, finalData, (err) => {
     if (err) {
       console.log("error writing = ", err);
     } else {
@@ -222,11 +218,15 @@ app.post("/api/create/post", async (req, res) => {
     .resize(smallSize)
     .toBuffer()
     .then((smallData) => {
-      fs.writeFile("../instamike/public/" + fileNameSmall, smallData, (err) => {
-        if (err) {
-          console.log("error writing = ", err);
+      fs.writeFile(
+        "../instamike/public/" + record.fileNameSmall,
+        smallData,
+        (err) => {
+          if (err) {
+            console.log("error writing = ", err);
+          }
         }
-      });
+      );
     });
 
   sharp(finalData)
@@ -234,7 +234,7 @@ app.post("/api/create/post", async (req, res) => {
     .toBuffer()
     .then((mediumData) => {
       fs.writeFile(
-        "../instamike/public/" + fileNameMedium,
+        "../instamike/public/" + record.fileNameMedium,
         mediumData,
         (err) => {
           if (err) {
@@ -246,20 +246,18 @@ app.post("/api/create/post", async (req, res) => {
       );
     });
   console.log("Post created.\n\n");
-  return doPostCreate(res, record, fileName, fileNameSmall, fileNameMedium);
+  return doPostCreate(res, record);
 });
 
-const doPostCreate = async (
-  res,
-  record,
-  fileName,
-  fileNameSmall,
-  fileNameMedium
-) => {
+const doPostCreate = async (res, record) => {
   const response = await PostModel.create(record);
   return res.json({
     statusText: "ok",
-    fileNames: { full: fileName, small: fileNameSmall, medium: fileNameMedium },
+    fileNames: {
+      full: record.fileName,
+      small: record.fileNameSmall,
+      medium: record.fileNameMedium,
+    },
   });
 };
 
