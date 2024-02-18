@@ -1,23 +1,22 @@
-
 const express = require("express");
-const fs = require('fs')
+const dotenv = require("dotenv");
+const fs = require("fs");
 const path = require("path");
 const app = express();
 const bodyParser = require("body-parser");
-// mongoose is a "wrapper" for mongodb
 const mongoose = require("mongoose");
 const UserModel = require("./models/UserModel");
 const PostModel = require("./models/PostModel");
 const sharp = require("sharp"); // for image resizing
+dotenv.config();
 //
 //
 // SETUP
 //
 //
-const mongoAtlasPassword = "PmqueGSjn7uE8";
 mongoose
   .connect(
-    `mongodb+srv://mcoustier:${mongoAtlasPassword}@cluster0.1mm3m.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`
+    `mongodb+srv://mcoustier:${process.env.MONGO_KEY}@cluster0.1mm3m.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`
   )
   .then(() => {
     const port = 4000;
@@ -33,9 +32,6 @@ mongoose
 
 app.use("/", express.static(path.resolve(__dirname, "assets")));
 app.use(bodyParser.json({ limit: "7mb" }));
-
-const ftpUserAvatarRootPath = "/public_html/instamike/binary/user/avatar";
-const ftpUserAvatarRootPathSimple = "/instamike/binary/user/avatar";
 
 //
 //
@@ -95,23 +91,22 @@ app.post("/api/create/user", async (req, res) => {
   console.log("\n\n\nCREATE user ", req.body);
   const record = req.body;
 
-  // setup FTP path for this new user
-  const yourPath = `/binary/user/${record.name}`
-  console.log('\n\ncreate user = ', record.name)
-  console.log('path = ', yourPath)
-  // const yourPath = `${ftpUserAvatarRootPath}/${record.name}`;
-  fs.mkdir('../instamike/public' + yourPath, (err) => {
+  // setup path for this new user
+  const yourPath = `/binary/user/${record.name}`;
+  console.log("\n\ncreate user = ", record.name);
+  console.log("path = ", yourPath);
+  fs.mkdir("../instamike/public" + yourPath, (err) => {
     if (err) {
-        return console.error('create user create his folder error = ',err);
+      return console.error("create user create his folder error = ", err);
     }
-    console.log('Directory created successfully!');
+    console.log("Directory created successfully!");
   });
   //
-  // 
+  //
   let data = Buffer.from(record.avatar, "base64");
   let finalData = new Buffer.alloc(data.length - 15);
   data.copy(finalData, 0, 15, data.length); // Mystery - for some reason, when doing the buffer.from base64 above, I get an extra 15 bytes at beginning of result. Strip those here.
-  const yourPathSimple = yourPath 
+  const yourPathSimple = yourPath;
   const fileName = `${yourPathSimple}/avatar.jpg`;
   const fileNameSmall = `${yourPathSimple}/avatar-medium.jpg`;
   const fileNameMedium = `${yourPathSimple}/avatar-small.jpg`;
@@ -119,51 +114,68 @@ app.post("/api/create/user", async (req, res) => {
   record.avatarFileNameMedium = fileNameMedium;
   record.avatarFileNameSmall = fileNameSmall;
 
-console.log('fileName  ', fileName)
-console.log('fileNameSmall = ', fileNameSmall)
-console.log('fileNameMedium = ', fileNameMedium)
+  console.log("fileName  ", fileName);
+  console.log("fileNameSmall = ", fileNameSmall);
+  console.log("fileNameMedium = ", fileNameMedium);
   fs.writeFile("../instamike/public/" + fileName, finalData, (err) => {
     if (err) {
-      console.log('Avatar error writing = ', err)
+      console.log("Avatar error writing = ", err);
     } else {
-      console.log('Avatar Original quality imagefile written success!')
+      console.log("Avatar Original quality imagefile written success!");
     }
-  })
-  
+  });
+
   const smallSize = 256;
   const mediumSize = 512;
-  sharp(finalData).resize(smallSize).toBuffer()
+  sharp(finalData)
+    .resize(smallSize)
+    .toBuffer()
     .then((smallData) => {
       fs.writeFile("../instamike/public/" + fileNameSmall, smallData, (err) => {
         if (err) {
-          console.log('Avatar error writing = ', err)
+          console.log("Avatar error writing = ", err);
         }
-      })
+      });
     });
 
-  sharp(finalData).resize(mediumSize).toBuffer()
+  sharp(finalData)
+    .resize(mediumSize)
+    .toBuffer()
     .then((mediumData) => {
-      fs.writeFile("../instamike/public/"+fileNameMedium, mediumData, (err) => {
-        if (err) {
-          console.log('Avatar error writing = ', err)
-        } else {
-          console.log('Avatar medium imagefile written success!')
+      fs.writeFile(
+        "../instamike/public/" + fileNameMedium,
+        mediumData,
+        (err) => {
+          if (err) {
+            console.log("Avatar error writing = ", err);
+          } else {
+            console.log("Avatar medium imagefile written success!");
+          }
         }
-      })            
-  });
+      );
+    });
 
   doUserCreate(record, res, fileName, fileNameSmall, fileNameMedium);
-
 });
 
-const doUserCreate = async (record, res, avatarFileName, avatarFileNameSmall, avatarFileNameMedium) => {
-  console.log('\n\ndoUserCreate !  ')
+const doUserCreate = async (
+  record,
+  res,
+  avatarFileName,
+  avatarFileNameSmall,
+  avatarFileNameMedium
+) => {
+  console.log("\n\ndoUserCreate !  ");
   await UserModel.create(record);
   res.json({
     status: 200,
-    fileNames: { full: avatarFileName, small: avatarFileNameSmall, medium: avatarFileNameMedium },
+    fileNames: {
+      full: avatarFileName,
+      small: avatarFileNameSmall,
+      medium: avatarFileNameMedium,
+    },
   });
-}
+};
 
 //
 //
@@ -177,66 +189,79 @@ app.get("/api/get/posts", async (req, res) => {
 
 //
 // Create new post
-// 
+//
 app.post("/api/create/post", async (req, res) => {
   const timeStamp = Date.now();
 
   const record = req.body;
-    const yourPath = `binary/user/${record.name}`
-    console.log('your path = ', yourPath)
-    const fileName = `${yourPath}/${timeStamp}-image.jpg`;
-    const fileNameMedium = `${yourPath}/${timeStamp}-image-medium.jpg`;
-    const fileNameSmall = `${yourPath}/${timeStamp}-image-small.jpg`;
-    record.fileName = fileName; // is it really a jpg?
-    record.fileNameMedium = fileNameMedium;
-    record.fileNameSmall = fileNameSmall;
-  
-    let data = Buffer.from(record.image, "base64");
-    let finalData = new Buffer.alloc(data.length - 15);
-    data.copy(finalData, 0, 15, data.length); // Mystery - for some reason, when doing the buffer.from base64 above, I get an extra 15 bytes at beginning of result. Strip those here.
-    console.log('fileName created = ', record.fileName)
-    console.log('and fully written to ', "../instamike/public/" + fileName)
-    fs.writeFile("../instamike/public/" + fileName, finalData, (err) => {
-      if (err) {
-        console.log('error writing = ', err)
-      } else {
-        console.log('Original quality imagefile written success!')
-      }
-    })
-    
-    const smallSize = 256;
-    const mediumSize = 512;
-    sharp(finalData).resize(smallSize).toBuffer()
-      .then((smallData) => {
-        fs.writeFile("../instamike/public/" + fileNameSmall, smallData, (err) => {
-          if (err) {
-            console.log('error writing = ', err)
-          }
-        })
+  const yourPath = `binary/user/${record.name}`;
+  console.log("your path = ", yourPath);
+  const fileName = `${yourPath}/${timeStamp}-image.jpg`;
+  const fileNameMedium = `${yourPath}/${timeStamp}-image-medium.jpg`;
+  const fileNameSmall = `${yourPath}/${timeStamp}-image-small.jpg`;
+  record.fileName = fileName; // is it really a jpg?
+  record.fileNameMedium = fileNameMedium;
+  record.fileNameSmall = fileNameSmall;
+
+  let data = Buffer.from(record.image, "base64");
+  let finalData = new Buffer.alloc(data.length - 15);
+  data.copy(finalData, 0, 15, data.length); // Mystery - for some reason, when doing the buffer.from base64 above, I get an extra 15 bytes at beginning of result. Strip those here.
+  console.log("fileName created = ", record.fileName);
+  console.log("and fully written to ", "../instamike/public/" + fileName);
+  fs.writeFile("../instamike/public/" + fileName, finalData, (err) => {
+    if (err) {
+      console.log("error writing = ", err);
+    } else {
+      console.log("Original quality imagefile written success!");
+    }
+  });
+
+  const smallSize = 256;
+  const mediumSize = 512;
+  sharp(finalData)
+    .resize(smallSize)
+    .toBuffer()
+    .then((smallData) => {
+      fs.writeFile("../instamike/public/" + fileNameSmall, smallData, (err) => {
+        if (err) {
+          console.log("error writing = ", err);
+        }
       });
-
-    sharp(finalData).resize(mediumSize).toBuffer()
-      .then((mediumData) => {
-        fs.writeFile("../instamike/public/"+fileNameMedium, mediumData, (err) => {
-          if (err) {
-            console.log('error writing = ', err)
-          } else {
-            console.log('medium imagefile written success!')
-          }
-        })            
     });
-    console.log('Post created.\n\n')
-    return doPostCreate(res, record, fileName, fileNameSmall, fileNameMedium);
 
+  sharp(finalData)
+    .resize(mediumSize)
+    .toBuffer()
+    .then((mediumData) => {
+      fs.writeFile(
+        "../instamike/public/" + fileNameMedium,
+        mediumData,
+        (err) => {
+          if (err) {
+            console.log("error writing = ", err);
+          } else {
+            console.log("medium imagefile written success!");
+          }
+        }
+      );
+    });
+  console.log("Post created.\n\n");
+  return doPostCreate(res, record, fileName, fileNameSmall, fileNameMedium);
 });
 
-const doPostCreate = async (res, record, fileName, fileNameSmall, fileNameMedium) => {
+const doPostCreate = async (
+  res,
+  record,
+  fileName,
+  fileNameSmall,
+  fileNameMedium
+) => {
   const response = await PostModel.create(record);
   return res.json({
     statusText: "ok",
     fileNames: { full: fileName, small: fileNameSmall, medium: fileNameMedium },
   });
-}
+};
 
 app.post("/api/delete/post", async (req, res) => {
   const record = req.body;
