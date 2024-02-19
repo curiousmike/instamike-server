@@ -43,6 +43,7 @@ postRouter.post("/create", async (req, res) => {
   const mediumSize = 512;
   sharp(finalData)
     .resize(smallSize)
+    .withMetadata()
     .toBuffer()
     .then((smallData) => {
       fs.writeFile(
@@ -58,6 +59,7 @@ postRouter.post("/create", async (req, res) => {
 
   sharp(finalData)
     .resize(mediumSize)
+    .withMetadata()
     .toBuffer()
     .then((mediumData) => {
       fs.writeFile(

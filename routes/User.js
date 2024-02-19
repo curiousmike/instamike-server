@@ -94,6 +94,7 @@ userRouter.post("/", async (req, res) => {
   const mediumSize = 512;
   sharp(finalData)
     .resize(smallSize)
+    .withMetadata()
     .toBuffer()
     .then((smallData) => {
       fs.writeFile("../instamike/public/" + fileNameSmall, smallData, (err) => {
@@ -105,6 +106,7 @@ userRouter.post("/", async (req, res) => {
 
   sharp(finalData)
     .resize(mediumSize)
+    .withMetadata()
     .toBuffer()
     .then((mediumData) => {
       fs.writeFile(
