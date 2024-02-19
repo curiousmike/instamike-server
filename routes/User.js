@@ -1,6 +1,7 @@
 const sharp = require("sharp"); // for image resizing
 const UserModel = require("../models/UserModel");
 const fs = require("fs");
+const determineResize = require("../utils/utils");
 
 const express = require("express");
 const userRouter = express.Router();
@@ -90,8 +91,8 @@ userRouter.post("/", async (req, res) => {
     }
   });
 
-  const smallSize = 256;
-  const mediumSize = 512;
+  const { width, height } = await sharp(finalData).metadata();
+  const { smallSize, mediumSize } = determineResize(width, height);
   sharp(finalData)
     .resize(smallSize)
     .withMetadata()
